@@ -303,6 +303,7 @@ function jit_compiler(compile_context, next_pc, compiled, jmp_table){
             return;
         }
     }
+    return;
     //ふつうにコンパイル
     if(next_pc - pc < 8){
         //短すぎると効果が薄いのでやめる

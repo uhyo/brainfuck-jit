@@ -1,0 +1,2 @@
+JavaScriptで書かれたBrainfuckのインタプリタです。
+実行時にコードの一部をJavaScriptの関数に変換することで高速化します。
