@@ -47,28 +47,28 @@ function interpret(text){
 
     while(pc < text_length){
         let instruction = text[pc];
-        /* ↓ここの条件文手抜き */
-        if(block_start===true && instruction!==0x5b && instruction!==0x5d){
+        if(compiled[pc] != null){
+            //コンパイル済だ
+            let result = compiled[pc](memptr, memory, getchar, putchar);
+            /*pc = result[0];
+              memptr = result[1];*/
+            //console.log(pc, String.fromCharCode(text[pc]), "->", result.pc, String.fromCharCode(text[result.pc]));
+            pc = result.pc;
+            memptr = result.memptr;
+            block_start = false;
+            compile_context = null;
+            continue;
+        }else if(block_start===true && instruction!==0x5b && instruction!==0x5d){
+            /* ↑ ここの条件文手抜き */
             //ここが基本ブロックの最初だ
-            if(compiled[pc] != null){
-                //コンパイル済だ
-                let result = compiled[pc](memptr, memory, getchar, putchar);
-                /*pc = result[0];
-                memptr = result[1];*/
-                pc = result.pc;
-                memptr = result.memptr;
-                block_start = false;
-                continue;
-            }else{
-                if(++call_count[pc] === 5){
-                    //5回呼ばれたらコンパイル開始
-                    compile_context = {
-                        //ブロック開始位置
-                        pc,
-                        //操作の列
-                        ops: []
-                    };
-                }
+            if(++call_count[pc] === 3){
+                //3回呼ばれたらコンパイル開始
+                compile_context = {
+                    //ブロック開始位置
+                    pc,
+                    //操作の列
+                    ops: []
+                };
             }
         }
         switch(instruction){
@@ -125,7 +125,7 @@ function interpret(text){
             case 0x5b: //'['
                 if(compile_context != null){
                     //基本ブロックの終わりに到達した
-                    jit_compiler(compile_context, pc, compiled);
+                    jit_compiler(compile_context, pc, compiled, jmp_table);
                     compile_context=null;
                 }
                 if(memory[memptr]===0){
@@ -147,7 +147,7 @@ function interpret(text){
                 break;
             case 0x5d: //']'
                 if(compile_context != null){
-                    jit_compiler(compile_context, pc, compiled);
+                    jit_compiler(compile_context, pc, compiled, jmp_table);
                     compile_context=null;
                 }
                 if(memory[memptr]===0){
@@ -279,15 +279,36 @@ function jit_in(compile_context, d){
     });
 }
 
-function jit_compiler(compile_context, next_pc, compiled){
+function jit_compiler(compile_context, next_pc, compiled, jmp_table){
     //収集した情報からJavaScriptネイティブコードを生成
-    if(next_pc - compile_context.pc < 5){
+    let pc=compile_context.pc;
+    const ops=compile_context.ops;
+    const l=ops.length;
+    //特殊な最適化
+    if(jmp_table.get(next_pc)===pc-1){
+        //外側を[ ]で囲まれている
+        if(l===1 && ops[0].type===JIT_OP_DATA && ops[0].memptr===0 && (ops[0].memory[0]===-1 || ops[0].memory[0]===1)){
+            //ループでメモリを0にしている
+            //最適化可能だ！
+            let code='"use strict";';
+            let mm=ops[0].memory;
+            for(let j in mm){
+                if(j!=="0"){
+                    code+="memory[memptr+("+j+")]+=("+(-1*mm[j]*mm[0])+")*memory[memptr];";
+                }
+            }
+            code+="memory[memptr]=0;return {pc:"+(next_pc+1)+", memptr};";
+            //console.log(ops, code);
+            compiled[pc-1] = new Function("memptr","memory","getchar","putchar",code);
+            return;
+        }
+    }
+    //ふつうにコンパイル
+    if(next_pc - pc < 8){
         //短すぎると効果が薄いのでやめる
         return;
     }
     let code='"use strict";';
-    const ops=compile_context.ops;
-    const l=ops.length;
     for(let i=0;i<l;i++){
         let op=ops[i];
         switch(op.type){
@@ -314,7 +335,6 @@ function jit_compiler(compile_context, next_pc, compiled){
     //結果を返す処理
     //code+="return ["+next_pc+",memptr];";
     code+="return {pc:"+next_pc+", memptr};";
-    //console.log(code);
     //登録
-    compiled[compile_context.pc] = new Function("memptr","memory","getchar","putchar",code);
+    compiled[pc] = new Function("memptr","memory","getchar","putchar",code);
 }
