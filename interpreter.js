@@ -94,6 +94,21 @@ function interpret(text){
                     }
                 }
                 break;
+            case 0x24: //'$'
+                // DEBUG feature
+                process.stdout.write('\n\x1B[33m----- DEBUG -----\x1B[0m\n');
+                process.stdout.write('PC: '+pc+'\n');
+                process.stdout.write('memptr: '+memptr+'\n');
+                for (let i = Math.max(0, memptr-10), l = i+20; i<l; i++){
+                    if (i === memptr){
+                        process.stdout.write('\x1B[32m[' + memory[i] + ']\x1B[0m ');
+                    }else{
+                        process.stdout.write(memory[i]+' ');
+                    }
+                }
+                process.stdout.write('\n\x1B[33m-----------------\x1B[0m\n');
+                pc++;
+                break;
             default:
                 pc++;
         }

@@ -1,0 +1,23 @@
+{
+  "name": "brainfuck-jit",
+  "version": "1.0.0",
+  "description": "JavaScriptで書かれたBrainfuckのインタプリタです。 実行時にコードの一部をJavaScriptの関数に変換することで高速化します。",
+  "main": "interpreter.js",
+  "bin": {
+    "bf-interpreter": "./bin/bin.js",
+    "bf-jit": "./bin/bin-jit.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/uhyo/brainfuck-jit.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/uhyo/brainfuck-jit/issues"
+  },
+  "homepage": "https://github.com/uhyo/brainfuck-jit#readme"
+}
